@@ -41,7 +41,6 @@ def check_and_download():
             if cursor.fetchone() is None and publishDate > (now - timedelta(days = configs['expire_time'])):
                 print(f"New entry found: {entry['title']} ({entry['published']})")
                 file_path = download(entry, item['name'])
-                # TODO: Add to db after download
                 db_data = (entry['id'], item['name'], entry['title'], file_path, publishDate.isoformat())
                 cursor.execute("INSERT INTO downloads (guid, feed, title, file_path, release_date) VALUES (?, ?, ?, ?, ?)", db_data)
         print()
