@@ -1,0 +1,5 @@
+{
+    "content_dir": "downloads",
+    "expire_time": 30,
+    "db_name": "content.db"
+}
