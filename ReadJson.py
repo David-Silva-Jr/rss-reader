@@ -4,6 +4,7 @@ import requests
 import os
 import sqlite3
 from datetime import datetime, timedelta
+from dateutil import parser
 
 configs = json.load(open('config.json'))
 
@@ -12,7 +13,7 @@ def setup_db():
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS downloads (
-            guid TEXT PRIMARY KEY,
+            uid TEXT PRIMARY KEY,
             feed TEXT,
             title TEXT,
             file_path TEXT,
@@ -29,20 +30,20 @@ def check_and_download():
     conn = sqlite3.connect(configs['db_name'])
     cursor = conn.cursor()
 
-    now = datetime.now()
+    now = datetime.now().astimezone()
 
     for item in data:
         print(f"Searching for new entries from {item['name']}...")
         feed = feedparser.parse(item['link'])
         for entry in feed['items']:
-            publishDate = datetime.strptime(entry['published'], "%a, %d %b %Y %H:%M:%S %Z")
+            publishDate = parser.parse(entry['published'])
 
-            cursor.execute("SELECT guid FROM downloads WHERE guid = ?", [entry['id']])
+            cursor.execute("SELECT uid FROM downloads WHERE uid = ?", [entry['id']])
             if cursor.fetchone() is None and publishDate > (now - timedelta(days = configs['expire_time'])):
                 print(f"New entry found: {entry['title']} ({entry['published']})")
                 file_path = download(entry, item['name'])
                 db_data = (entry['id'], item['name'], entry['title'], file_path, publishDate.isoformat())
-                cursor.execute("INSERT INTO downloads (guid, feed, title, file_path, release_date) VALUES (?, ?, ?, ?, ?)", db_data)
+                cursor.execute("INSERT INTO downloads (uid, feed, title, file_path, release_date) VALUES (?, ?, ?, ?, ?)", db_data)
         print()
     conn.commit()
     conn.close()
@@ -69,6 +70,7 @@ def delete_expired_entries():
 
 def download(rss_entry, source):
     # TODO: Add handling for error cases, for example, ...['href'] doesn't exist, or os.path.splitext fails to get a file extension, etc.
+    # TODO: Enable downloads of webpages for offline reading
     download_url = rss_entry['enclosures'][0]['href']
     response = requests.get(download_url)
     try:
