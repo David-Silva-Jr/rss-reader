@@ -2,3 +2,5 @@ rss-links.json
 downloads/
 *.db
 env/
+node_modules/
+__pycache__/
