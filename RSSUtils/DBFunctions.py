@@ -2,12 +2,13 @@ import sqlite3
 import feedparser
 import os
 import requests
+import json
 from datetime import datetime, timedelta
 from dateutil import parser
 
 # TODO: Find some way to get the runtime of the episode without downloading the whole episode
 # rss_feed_data should be the array of feeds from rss-links
-def check_for_new(rss_feed_data, db_file_name, expire_time, content_dir):
+def check_new(rss_feed_data, db_file_name, expire_time, content_dir):
     conn = sqlite3.connect(db_file_name)
     cursor = conn.cursor()
 
@@ -44,7 +45,7 @@ def check_for_new(rss_feed_data, db_file_name, expire_time, content_dir):
     conn.close()
 
 # TODO: Add check to make sure episode is not already downloaded first
-def download_missing_episode(db_file_name, episode_id):
+def download(db_file_name, episode_id):
     conn = sqlite3.connect(db_file_name)
     cursor = conn.cursor()
     cursor.execute('SELECT file_path, download_link FROM downloads WHERE uid = ?', [episode_id])
@@ -83,9 +84,9 @@ def download_all_missing(db_file_name):
     cursor.execute('SELECT uid FROM downloads WHERE downloaded = FALSE')
     missing = cursor.fetchall()
     for entry in missing:
-        download_missing_episode(db_file_name, entry[0])
+        download(db_file_name, entry[0])
 
-def delete_episode(db_file_name, episode_id):
+def delete(db_file_name, episode_id):
     conn = sqlite3.connect(db_file_name)
     cursor = conn.cursor()
     
@@ -114,7 +115,7 @@ def delete_episode(db_file_name, episode_id):
     conn.commit()
     conn.close()
 
-def delete_expired_episodes(db_file_name, expire_time):
+def delete_expired(db_file_name, expire_time):
     conn = sqlite3.connect(db_file_name)
     cursor = conn.cursor()
     cutoff = datetime.now() - timedelta(days = expire_time)
@@ -123,10 +124,41 @@ def delete_expired_episodes(db_file_name, expire_time):
     old_files = cursor.fetchall()
 
     for entry in old_files:
-        delete_episode(db_file_name, entry[0])
+        delete(db_file_name, entry[0])
 
 def set_keep(db_file_name, episode_id, new_keep_val):
     conn = sqlite3.connect(db_file_name)
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE downloads SET keep = ? WHERE uid = ?", new_keep_val, episode_id)
+    params = (new_keep_val, episode_id)
+    # print(params)
+    cursor.execute("UPDATE downloads SET keep = ? WHERE uid = ?", params)
+    conn.commit()
+    conn.close()
+
+def get_all_episodes(db_file_name):
+    conn = sqlite3.connect(db_file_name)
+    cursor = conn.cursor()
+
+    keys = ["uid", "feed", "title", "release_date", "downloaded", "keep"]
+    cursor.execute(f"SELECT {', '.join(keys)} FROM downloads")
+    selected = cursor.fetchall()
+    conn.close()
+
+    return select_to_json(keys, selected)
+
+def select_to_json(keys, values):
+    result_list = []
+
+    for row in values:
+        if len(keys) != len(row):
+            raise ValueError("number of keys does not match number of rows")
+        result_list.append({key: value for key, value in zip(keys, row)})
+    return json.dumps(result_list, indent=4)
+
+# TODO: Add some error handling here
+def get_config(key):
+    with open('config.json', 'r') as f:
+        configs = json.load(f)
+        value = configs.get(key)
+        print(json.dumps({"value": value}))
