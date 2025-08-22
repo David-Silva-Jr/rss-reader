@@ -21,6 +21,7 @@ def setup_db():
             feed TEXT,
             title TEXT,
             release_date DATETIME,
+            summary TEXT,
             file_path TEXT,
             download_link TEXT,
             downloaded BOOLEAN,
@@ -73,6 +74,10 @@ if __name__ == "__main__":
             sys.exit(1)
 
         DBFunctions.set_keep(DB_NAME, episode_id, new_setting)
+    
+    elif function_name == "get_summary":
+        episode_id = sys.argv[2]
+        DBFunctions.get_summary(DB_NAME, episode_id)
     
     elif function_name == "get_config":
         DBFunctions.get_config(sys.argv[2])

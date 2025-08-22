@@ -67,7 +67,8 @@ ipcMain.handle('run-python-script', async (event, functionName, args) => {
                         const jsonOutput = JSON.parse(output);
                         resolve(jsonOutput);
                     } catch (e) {
-                        reject(new Error(`Failed to parse output: ${e.message}`));
+                        // reject(new Error(`Failed to parse output: ${e.message}`));
+                        resolve(output);
                     }
                 } else {
                     resolve('Successfully ran script');

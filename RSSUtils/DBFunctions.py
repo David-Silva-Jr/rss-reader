@@ -37,9 +37,9 @@ def check_new(rss_feed_data, db_file_name, expire_time, content_dir):
                 root, extension = os.path.splitext(base_url)
 
                 file_path = os.path.join(content_dir, feed_name, episode_name + extension)
-                db_data = (entry['id'], item['name'], episode_name, publish_date.isoformat(), file_path, download_url, False)
+                db_data = (entry['id'], item['name'], episode_name, publish_date.isoformat(), entry['summary'], file_path, download_url, False)
 
-                cursor.execute("INSERT INTO downloads (uid, feed, title, release_date, file_path, download_link, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?)", db_data)
+                cursor.execute("INSERT INTO downloads (uid, feed, title, release_date, summary, file_path, download_link, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", db_data)
         print()
     conn.commit()
     conn.close()
@@ -147,12 +147,27 @@ def get_all_episodes(db_file_name):
 
     return select_to_json(keys, selected)
 
+def get_summary(db_file_name, uid):
+    conn = sqlite3.connect(db_file_name)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT summary FROM downloads WHERE uid = ?", [uid])
+    response = cursor.fetchall()
+    conn.close()
+
+    output = ""
+    if response is not None:
+        output = select_to_json(["summary"], response)
+    else:
+        output = select_to_json(["summary"], "No summary found for this episode.")
+    print(output)
+
 def select_to_json(keys, values):
     result_list = []
 
     for row in values:
         if len(keys) != len(row):
-            raise ValueError("number of keys does not match number of rows")
+            raise ValueError(f"number of keys does not match number of rows ({len(keys)} keys vs {len(row)} rows)")
         result_list.append({key: value for key, value in zip(keys, row)})
     return json.dumps(result_list, indent=4)
 

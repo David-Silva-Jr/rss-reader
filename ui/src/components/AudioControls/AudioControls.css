@@ -1,0 +1,17 @@
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.scrolling-text-container {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.scrolling-text-content {
+    display: inline-block;
+}
+
+.scrolling-text-animated {
+    animation: scroll-left linear infinite;
+}
